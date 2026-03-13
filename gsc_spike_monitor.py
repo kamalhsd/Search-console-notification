@@ -10,8 +10,8 @@ from googleapiclient.discovery import build
 
 # --- CONFIGURATION ---
 # Replace these with your actual email addresses
-EMAIL_SENDER = 'your_email@gmail.com' 
-EMAIL_RECEIVER = 'your_email@gmail.com'
+EMAIL_SENDER = 'kamal.bettersea@gmail.com' 
+EMAIL_RECEIVER = 'kamal.bettersea@gmail.com'
 
 # Credentials and thresholds
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
