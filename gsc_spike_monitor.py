@@ -10,11 +10,17 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # --- CONFIGURATION ---
-EMAIL_SENDER = 'your_email@gmail.com' 
-EMAIL_RECEIVER = 'your_email@gmail.com'
+EMAIL_SENDER = 'kamal.bettersea@gmail.com' 
+EMAIL_RECEIVER = 'kamal.bettersea@gmail.com'
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 MIN_AVG_CLICKS = 20
 SPIKE_MULTIPLIER = 2.0
+
+# --- BYPASS LIST ---
+IGNORE_LIST = [
+    'https://andamantourtravelpackage.com/',
+    'sc-domain:andamantourtravelpackage.com'
+]
 # ---------------------
 
 def get_gsc_service():
@@ -28,19 +34,18 @@ def deduplicate_properties(site_list):
     prefix_sites = []
     filtered_list = []
 
-    # Pass 1: Isolate all sc-domain properties
     for site in site_list:
+        if site in IGNORE_LIST:
+            continue
         if site.startswith('sc-domain:'):
             sc_domains.add(site.replace('sc-domain:', '').strip('/'))
             filtered_list.append(site)
         else:
             prefix_sites.append(site)
 
-    # Pass 2: Purge URL-prefix properties covered by an sc-domain
     for site in prefix_sites:
         parsed_url = urlparse(site)
         netloc = parsed_url.netloc.replace('www.', '') 
-        
         if not any(sc_domain in netloc for sc_domain in sc_domains):
             filtered_list.append(site)
             
@@ -103,9 +108,8 @@ def main():
     sites_response = service.sites().list().execute()
     raw_site_list = [site['siteUrl'] for site in sites_response.get('siteEntry', [])]
     
-    # Filter out duplicate URL-prefix properties
     site_list = deduplicate_properties(raw_site_list)
-    print(f"Filtered {len(raw_site_list)} raw properties down to {len(site_list)} unique domains.")
+    print(f"Filtered {len(raw_site_list)} raw properties down to {len(site_list)} active domains.")
     
     anomalies = []
 
