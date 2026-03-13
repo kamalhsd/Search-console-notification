@@ -13,7 +13,7 @@ from googleapiclient.discovery import build
 EMAIL_SENDER = 'kamal.bettersea@gmail.com' 
 EMAIL_RECEIVER = 'kamal.bettersea@gmail.com'
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
-MIN_AVG_CLICKS = 20
+MIN_AVG_CLICKS = 5
 SPIKE_MULTIPLIER = 2.0
 
 # --- BYPASS LIST ---
