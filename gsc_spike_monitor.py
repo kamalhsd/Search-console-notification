@@ -8,15 +8,19 @@ from email.mime.multipart import MIMEMultipart
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# --- CONFIGURATION UPDATE ---
-EMAIL_SENDER = 'kamal.bettersea@gmail.com' 
-EMAIL_RECEIVER = 'kamal.bettersea@gmail.com'
-EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD') # Pulled from GitHub Secrets
+# --- CONFIGURATION ---
+# Replace these with your actual email addresses
+EMAIL_SENDER = 'your_email@gmail.com' 
+EMAIL_RECEIVER = 'your_email@gmail.com'
+
+# Credentials and thresholds
+EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+MIN_AVG_CLICKS = 20
+SPIKE_MULTIPLIER = 2.0
 # ---------------------
 
 def get_gsc_service():
     scopes = ['https://www.googleapis.com/auth/webmasters.readonly']
-    # Load the JSON directly from GitHub Secrets
     creds_json = json.loads(os.environ.get('GSC_CREDENTIALS'))
     creds = service_account.Credentials.from_service_account_info(creds_json, scopes=scopes)
     return build('webmasters', 'v3', credentials=creds, cache_discovery=False)
@@ -64,9 +68,12 @@ def send_email_alert(anomalies):
         print(f"Failed to send email: {e}")
 
 def main():
+    # Failsafe to ensure GitHub Secrets are loading properly
+    if not os.environ.get('GSC_CREDENTIALS') or not os.environ.get('EMAIL_PASSWORD'):
+        raise ValueError("CRITICAL ERROR: GSC_CREDENTIALS or EMAIL_PASSWORD environment variables are missing.")
+
     service = get_gsc_service()
     
-    # GSC data has a 2-3 day lag. We use 3 days ago as our "Recent" baseline.
     recent_date = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d')
     history_start = (datetime.now() - timedelta(days=31)).strftime('%Y-%m-%d')
     history_end = (datetime.now() - timedelta(days=4)).strftime('%Y-%m-%d')
