@@ -1,0 +1,29 @@
+name: Daily GSC Spike Monitor
+
+on:
+  schedule:
+    # Runs daily at 02:30 UTC, which is 08:00 AM IST (Delhi time)
+    - cron: '30 02 * * *'
+  workflow_dispatch: # Allows you to run it manually by clicking a button
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install google-api-python-client google-auth httplib2
+
+      - name: Execute GSC Script
+        env:
+          GSC_CREDENTIALS: ${{ secrets.GSC_CREDENTIALS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python gsc_spike_monitor.py
