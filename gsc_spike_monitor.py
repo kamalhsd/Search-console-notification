@@ -9,8 +9,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # --- CONFIGURATION UPDATE ---
-EMAIL_SENDER = 'your_email@gmail.com' 
-EMAIL_RECEIVER = 'your_email@gmail.com'
+EMAIL_SENDER = 'kamal.bettersea@gmail.com' 
+EMAIL_RECEIVER = 'kamal.bettersea@gmail.com'
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD') # Pulled from GitHub Secrets
 # ---------------------
 
