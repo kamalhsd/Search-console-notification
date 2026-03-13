@@ -5,15 +5,13 @@ from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from urllib.parse import urlparse
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # --- CONFIGURATION ---
-# Replace these with your actual email addresses
-EMAIL_SENDER = 'kamal.bettersea@gmail.com' 
-EMAIL_RECEIVER = 'kamal.bettersea@gmail.com'
-
-# Credentials and thresholds
+EMAIL_SENDER = 'your_email@gmail.com' 
+EMAIL_RECEIVER = 'your_email@gmail.com'
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 MIN_AVG_CLICKS = 20
 SPIKE_MULTIPLIER = 2.0
@@ -24,6 +22,29 @@ def get_gsc_service():
     creds_json = json.loads(os.environ.get('GSC_CREDENTIALS'))
     creds = service_account.Credentials.from_service_account_info(creds_json, scopes=scopes)
     return build('webmasters', 'v3', credentials=creds, cache_discovery=False)
+
+def deduplicate_properties(site_list):
+    sc_domains = set()
+    prefix_sites = []
+    filtered_list = []
+
+    # Pass 1: Isolate all sc-domain properties
+    for site in site_list:
+        if site.startswith('sc-domain:'):
+            sc_domains.add(site.replace('sc-domain:', '').strip('/'))
+            filtered_list.append(site)
+        else:
+            prefix_sites.append(site)
+
+    # Pass 2: Purge URL-prefix properties covered by an sc-domain
+    for site in prefix_sites:
+        parsed_url = urlparse(site)
+        netloc = parsed_url.netloc.replace('www.', '') 
+        
+        if not any(sc_domain in netloc for sc_domain in sc_domains):
+            filtered_list.append(site)
+            
+    return filtered_list
 
 def get_data(service, site_url, start_date, end_date):
     request = {
@@ -68,7 +89,6 @@ def send_email_alert(anomalies):
         print(f"Failed to send email: {e}")
 
 def main():
-    # Failsafe to ensure GitHub Secrets are loading properly
     if not os.environ.get('GSC_CREDENTIALS') or not os.environ.get('EMAIL_PASSWORD'):
         raise ValueError("CRITICAL ERROR: GSC_CREDENTIALS or EMAIL_PASSWORD environment variables are missing.")
 
@@ -81,7 +101,11 @@ def main():
     print(f"Analyzing Recent ({recent_date}) vs Avg ({history_start} to {history_end})...")
 
     sites_response = service.sites().list().execute()
-    site_list = [site['siteUrl'] for site in sites_response.get('siteEntry', [])]
+    raw_site_list = [site['siteUrl'] for site in sites_response.get('siteEntry', [])]
+    
+    # Filter out duplicate URL-prefix properties
+    site_list = deduplicate_properties(raw_site_list)
+    print(f"Filtered {len(raw_site_list)} raw properties down to {len(site_list)} unique domains.")
     
     anomalies = []
 
@@ -105,7 +129,7 @@ def main():
                     'growth': growth_pct
                 })
         
-        time.sleep(1) # Prevent API quota limits
+        time.sleep(1)
 
     if anomalies:
         send_email_alert(anomalies)
